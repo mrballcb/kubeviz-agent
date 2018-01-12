@@ -28,6 +28,7 @@ RUN npm install promise
 RUN npm install bluebird
 
 COPY src /src
+RUN mkdir -p /data
 
 WORKDIR /src
 
