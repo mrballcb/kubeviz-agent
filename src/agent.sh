@@ -21,10 +21,8 @@ if [[ ! -v KOPS_STATE_STORE ]]; then
     exit -1
 fi
 
-# if [[ ! -v OUTSIDE_CLUSTER ]]; then
-#   EC2_AVAIL_ZONE=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
-#   EC2_REGION="`echo \"$EC2_AVAIL_ZONE\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
-# fi
+EC2_AVAIL_ZONE=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
+AWS_REGION="`echo \"$EC2_AVAIL_ZONE\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
 
 while true;
 
@@ -66,6 +64,7 @@ while true;
   CLUSTER_NODES=$(kubectl get no -o json | jq -r '.items[].spec.externalID')
 
   echo "[INFO] Collecing AWS resources (matching against DNS Zones $DNS_ZONE_IDS)..."
+  echo "[INFO] Instances to be scanned $CLUSTER_NODES"
   nodejs agent.js "$CLUSTER_NODES" "$DNS_ZONE_IDS"
   NODE_SUCCESS=$?
 
