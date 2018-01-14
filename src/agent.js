@@ -8,6 +8,9 @@ var elb = new AWS.ELB();
 var elbv2 = new AWS.ELBv2();
 var route53 = new AWS.Route53();
 
+var lbArns = []
+var lbDns = []
+
 main();
 
 function main() {
@@ -27,11 +30,17 @@ function main() {
   }).then(function(targetGroupsAndLoadBalancers) {
     // Returns a combined list of v1 and v2 load balancer dns names
     return getTargetGroups(targetGroupsAndLoadBalancers[0])
-      .then(function (LoadBalancerArns) {
-        return getV2LoadBalancers(LoadBalancerArns);
+      .then(function (loadBalancerArns) {
+        lbArns = loadBalancerArns
+        return getV2LoadBalancers(loadBalancerArns)
+          .then(function(loadBalancerArns) {
+            return getLoadBalancerListeners(loadBalancerArns);
+          }).then(function(listenerArns) {
+            return getListenRules(listenerArns);
+          })
       })
-      .then(function (loadBalancerDnsNames) {
-        return getV1LoadBalancers(targetGroupsAndLoadBalancers[1], loadBalancerDnsNames);
+      .then(function () {
+        return getV1LoadBalancers(targetGroupsAndLoadBalancers[1]);
       })
   }).then(function(loadBalancerDnsNames) {
     return getMatchingDnsRecords(loadBalancerDnsNames, hostedZoneIds);
@@ -131,18 +140,73 @@ function getV2LoadBalancers(loadBalancerArns) {
   return elbv2.describeLoadBalancers(params).promise()
   .then(function(data) {
     var loadBalancerData = [];
-    var loadBalancerDnsNames = [];
+    // var loadBalancerDnsNames = [];
+    var loadBalancerArns = [];
     lbs=data.LoadBalancers
     for(i=0;i<lbs.length;i++) {
-      loadBalancerDnsNames.push(lbs[i].DNSName)
+      lbDns.push(lbs[i].DNSName)
+      loadBalancerArns.push(lbs[i].LoadBalancerArn)
       lbs[i]["kind"] = "LoadBalancerV2"
       loadBalancerData.push(lbs[i]);
     }
-    return writeResource("lbv2",loadBalancerData).then(function() { return loadBalancerDnsNames})
+    return writeResource("lbv2",loadBalancerData).then(function() { return loadBalancerArns })
   })
 }
 
-function getV1LoadBalancers(loadBalancerNames, loadBalancerDnsNames) {
+function getLoadBalancerListeners(loadBalancerArns) {
+  var promises = [];
+  for(i=0;i<loadBalancerArns.length;i++) {
+    var params = {
+      LoadBalancerArn: loadBalancerArns[i]
+    };
+    promises.push(
+      elbv2.describeListeners(params).promise()
+        .then(function(data) {
+          // var listenerData = [];
+          var listenerArns = [];
+          listeners=data.Listeners
+          for(j=0;j<listeners.length;j++) {
+            listenerArns.push(listeners[j].ListenerArn)
+            listeners[j]["kind"] = "LoadBalancerListener"
+            // listenerData.push(listeners[j])
+          }
+          return writeResource("lblistener",listeners).then(function() { return listenerArns })
+        })
+    )
+  }
+  return Promise.all(promises)
+}
+
+// Fetches ALB Listener Rules
+// Input 2-d array of listener arns [[arn1, arn2],[arn3,arn4]]
+function getListenRules(listenerArns) {
+  promises = []
+
+  // listenerArns comes in as a 2-d array
+  for(i=0;i<listenerArns.length;i++) {
+    for(j=0;j<listenerArns[i].length;j++) {
+      var params ={
+        ListenerArn: listenerArns[i][j]
+      };
+      promises.push(
+        elbv2.describeRules(params).promise()
+        .then(function(data) {
+          var ruleArns = []
+          for(k=0;k<data.Rules.length;k++) {
+            ruleArns.push(data.Rules[k].RuleArn);
+            data.Rules[k]["kind"] = "ListenerRule"
+          }
+          console.log(data.Rules)
+          return writeResource("listenerrule",data.Rules).then(function() { return ruleArns })
+        })
+      )
+    }
+  }
+
+  return Promise.all(promises)
+}
+
+function getV1LoadBalancers(loadBalancerNames) {
   var params = {
     LoadBalancerNames: loadBalancerNames
   };
@@ -151,11 +215,11 @@ function getV1LoadBalancers(loadBalancerNames, loadBalancerDnsNames) {
     loadBalancerData = [];
     lbs=data.LoadBalancerDescriptions
     for(i=0;i<lbs.length;i++) {
-      loadBalancerDnsNames.push(lbs[i].DNSName)
+      lbDns.push(lbs[i].DNSName)
       lbs[i]["kind"] = "LoadBalancer"
       loadBalancerData.push(lbs[i]);
     }
-    return writeResource("lb",loadBalancerData).then(function() { return loadBalancerDnsNames})
+    return writeResource("lb",loadBalancerData).then(function() { return lbDns})
   })
 }
 
