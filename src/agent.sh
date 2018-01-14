@@ -68,6 +68,8 @@ while true;
   nodejs agent.js "$CLUSTER_NODES" "$DNS_ZONE_IDS"
   NODE_SUCCESS=$?
 
+  echo "Size of file: "$(stat -f %z /data/data.json)
+
   echo "[INFO] Sending data to collection server $API_ENDPOINT..."
   echo "$NODE_SUCCESS"
   if [ $NODE_SUCCESS -eq 0 ]; then
