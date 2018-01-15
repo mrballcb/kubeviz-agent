@@ -196,7 +196,6 @@ function getListenRules(listenerArns) {
             ruleArns.push(data.Rules[k].RuleArn);
             data.Rules[k]["kind"] = "ListenerRule"
           }
-          console.log(data.Rules)
           return writeResource("listenerrule",data.Rules).then(function() { return ruleArns })
         })
       )

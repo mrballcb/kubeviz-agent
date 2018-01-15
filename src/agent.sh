@@ -62,7 +62,7 @@ while true;
   jq '. |= . + '"$(kops get ig --name $CLUSTER_NAME -o json | jq '.[] |= . + {"cluster":"'$CLUSTER_NAME'"}')" \
   > /data/data.json
 
-  echo "[]" > /data/data.json
+  # echo "[]" > /data/data.json
 
   # externalID = AWS Instance Ids
   CLUSTER_NODES=$(kubectl get no -o json | jq -r '.items[].spec.externalID')
