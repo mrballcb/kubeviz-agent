@@ -37,27 +37,12 @@ while true;
 
   echo "[INFO] Collecing K8S resources..."
 
-  # Ugly shit to parse out the `kubectl describe svc` command. Please help
-  SERVICES=$(kubectl get svc --all-namespaces -o json | jq -r '.items[] | .metadata.name+"/"+.metadata.namespace')
-  SERVICE_DESCRIPTIONS=""
-  for SVC in $SERVICES;
-    do
-      SVC_NAME=$(echo "$SVC" | awk -v delimeter="/" '{split($0,a,delimeter)} END{print a[1]}')
-      SVC_NS=$(echo "$SVC" | awk -v delimeter="/" '{split($0,a,delimeter)} END{print a[2]}')
-      SVC_DESC=$(echo "{"$(kubectl describe svc $SVC_NAME -n $SVC_NS | sed -E '/^( |Labels|Annotations).*$/d' | sed -E 's/^([a-zA-Z ]+):[ ]+(.*)/"\1":"\2",/g')"\"kind\":\"ServiceDescription\",\"cluster\":\"$CLUSTER_NAME\"}")
-      SERVICE_DESCRIPTIONS=$(echo "${SERVICE_DESCRIPTIONS}${SVC_DESC},")
-    done
-
-  # Remove trailing comma and add brackets
-  SERVICE_DESCRIPTIONS="["${SERVICE_DESCRIPTIONS%,*}"]"
-
   # Bring it all together
-  kubectl get deploy,ds,rs,statefulset,po,no,ns,ing,svc --all-namespaces -o json | \
+  kubectl get deploy,ds,rs,statefulset,po,no,ns,ing,svc,endpoints --all-namespaces -o json | \
   jq '.items[] |= . + {"cluster":"'$CLUSTER_NAME'"} | .items' | \
   jq '.[] |= del(.spec?.template?.spec?.containers[]?.env)' | \
   jq '.[] |= del(.metadata?.annotations["kubectl.kubernetes.io/last-applied-configuration"]?)' | \
   jq '.[] |= del(.spec?.containers[]?.env)' | \
-  jq '. |= . + '"$SERVICE_DESCRIPTIONS" | \
   jq '. |= . + ['"$(kops get cluster --name $CLUSTER_NAME -o json)"']' | \
   jq '. |= . + '"$(kops get ig --name $CLUSTER_NAME -o json | jq '.[] |= . + {"cluster":"'$CLUSTER_NAME'"}')" \
   > /data/data.json
