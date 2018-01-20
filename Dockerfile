@@ -22,6 +22,8 @@ RUN curl -L https://kubernetes-helm.storage.googleapis.com/helm-$(curl -s https:
   && mv linux-amd64/helm /usr/local/bin/helm \
   && rm -rf linux-amd64
 
+ENV AGENT_VERSION=0.1.0
+
 # RUN npm init
 RUN npm install aws-sdk
 RUN npm install promise

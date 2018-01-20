@@ -4,6 +4,7 @@ Agent:
   Image: bartlettc/kube-visualization-agent
   ImageTag: latest
   ImagePullPolicy: Always
+  Interval: 60 # Seconds between queries
   ApiEndpoint: "" # Example https://my-collector:8090
   ApiKey: ""
   DnsoneIds: "" # Comma separated list

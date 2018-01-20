@@ -7,6 +7,8 @@ var autoscaling = new AWS.AutoScaling();
 var elb = new AWS.ELB();
 var elbv2 = new AWS.ELBv2();
 var route53 = new AWS.Route53();
+var iam = new AWS.IAM();
+var sts = new AWS.STS();
 
 var lbArns = []
 var lbDns = []
@@ -44,6 +46,8 @@ function main() {
       })
   }).then(function(loadBalancerDnsNames) {
     return getMatchingDnsRecords(loadBalancerDnsNames, hostedZoneIds);
+  }).then(function() {
+    return getAccountInfo();
   });
 }
 
@@ -279,14 +283,21 @@ function getMatchingDnsRecords(loadBalancerDnsNames, hostedZoneIds) {
   return Promise.all(promises)
 }
 
-// function getTargetGroups(targetGroupARNs) {
-//
-//   AsgNames.forEach(function(a,i) {
-//     promises.push(getTargetGroup(a));
-//   });
-//
-//   return Promise.all(promises)
-// }
+function getAccountInfo() {
+  return iam.listAccountAliases({}).promise()
+  .then(function(data) {
+    accountData = {}
+    accountData.AccountAliases = data.AccountAliases
+    accountData.kind = "awsAccount"
+    return accountData
+  }).then(function(accountData) {
+    return sts.getCallerIdentity({}).promise()
+    .then(function(data) {
+      accountData.Account = data.Account
+      return writeResource("aa",accountData)
+    })
+  })
+}
 
 function writeResource(type, resource_data) {
 

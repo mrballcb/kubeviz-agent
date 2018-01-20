@@ -31,6 +31,8 @@ spec:
         image: "{{.Values.Agent.Image}}:{{.Values.Agent.ImageTag}}"
         imagePullPolicy: "{{.Values.Agent.ImagePullPolicy}}"
         env:
+        - name: AGENT_INTERVAL
+          value: {{ .Values.Agent.Interval }}
         - name: API_KEY
           value: {{ .Values.Agent.ApiKey }}
         - name: DNS_ZONE_IDS
