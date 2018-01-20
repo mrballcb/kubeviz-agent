@@ -56,7 +56,7 @@ while true;
   # Get the cluster name that we're in
   # Assumes ALL the nodes are labeld with 'clusterName'
   # Another way to get cluster?: $(kubectl get po -l k8s-app=kube-apiserver -n kube-system -o json | jq -r '.items[0].metadata.annotations["dns.alpha.kubernetes.io/external"]' | sed 's/^api\.//')
-  CLUSTER_NAME=$(kubectl get no -o json | jq -r '.items[0].metadata.labels.clusterName')
+  CLUSTER_NAME=$(kubectl get no -o json | jq -r '.items[0].metadata.labels.clusterName' 2>> /data/error.log)
   echo "[INFO] Cluster: $CLUSTER_NAME"
 
   echo "[INFO] Collecing K8S resources..."
@@ -65,7 +65,7 @@ while true;
   jq '.items[] |= del(.spec?.template?.spec?.containers[]?.env) | .items' | \
   jq '.[] |= del(.metadata?.annotations["kubectl.kubernetes.io/last-applied-configuration"]?)' | \
   jq '.[] |= del(.spec?.containers[]?.env)' | \
-  jq '. |= . + ['"$(kops get cluster --name $CLUSTER_NAME -o json)"']' | \
+  jq '. |= . + ['"$(kops get cluster --name $CLUSTER_NAME -o json 2>> /data/error.log)"']' | \
   jq '. |= . + '"$(kops get ig --name $CLUSTER_NAME -o json | jq '.[] |= . + {"cluster":"'$CLUSTER_NAME'"}')" \
   >> /data/data.json 2>> /data/error.log
 
@@ -87,6 +87,7 @@ while true;
   if [ -z "$REMOTE_RUN" ]; then
     if [ $NODE_SUCCESS -eq 0 ]; then
       curl \
+        -s \
         -H "Content-Type: application/json" \
         -H "X-KubeViz-Token: $API_KEY" \
         -X POST \

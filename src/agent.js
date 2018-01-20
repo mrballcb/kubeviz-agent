@@ -293,7 +293,7 @@ function getAccountInfo() {
   }).then(function(accountData) {
     return sts.getCallerIdentity({}).promise()
     .then(function(data) {
-      accountData.Account = data.Account
+      accountData.Account = ""+data.Account
       return writeResource("aa",accountData)
     })
   })
