@@ -37,6 +37,37 @@ json_escape () {
   echo $JSON_TOPIC_RAW
 }
 
+vercomp () {
+    if [[ $1 == $2 ]]
+    then
+        return 0
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            return 1
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            return 2
+        fi
+    done
+    return 0
+}
+
 while true;
 
   do
@@ -57,11 +88,17 @@ while true;
   # Assumes ALL the nodes are labeld with 'clusterName'
   # Another way to get cluster?: $(kubectl get po -l k8s-app=kube-apiserver -n kube-system -o json | jq -r '.items[0].metadata.annotations["dns.alpha.kubernetes.io/external"]' | sed 's/^api\.//')
   CLUSTER_NAME=$(kubectl get no -o json | jq -r '.items[0].metadata.labels.clusterName' 2>> /data/error.log)
+  CLUSTER_VERSION=$(kops get cluster --name $CLUSTER_NAME -o json | jq -r .spec.kubernetesVersion 2>> /data/error.log)
   echo "[INFO] Cluster: $CLUSTER_NAME"
 
   echo "[INFO] Collecing K8S resources..."
   # Bring it all together
-  kubectl get deploy,ds,rs,statefulset,po,no,ns,ing,svc,endpoints --all-namespaces -o json | \
+  ADDITIONAL_RESOURCES=""
+  vercomp $CLUSTER_VERSION "1.8.0"
+  if [ $? -eq 0 -o $? -eq 1 ]; then
+    ADDITIONAL_RESOURCES=",cronjobs"
+  fi
+  kubectl get deploy,ds,rs,statefulset,po,no,ns,ing,svc,endpoints,jobs${ADDITIONAL_RESOURCES} --all-namespaces -o json | \
   jq '.items[] |= del(.spec?.template?.spec?.containers[]?.env) | .items' | \
   jq '.[] |= del(.metadata?.annotations["kubectl.kubernetes.io/last-applied-configuration"]?)' | \
   jq '.[] |= del(.spec?.containers[]?.env)' | \
@@ -79,7 +116,7 @@ while true;
   NODE_SUCCESS=$?
 
   ELAPSED_TIME=$(($SECONDS - $START_SECONDS))
-  STATS='{"kind":"agentStats","agent_version":"'${AGENT_VERSION}'","query_time":"'${ELAPSED_TIME}'","run_start":"'${START_DATE}'","run_interval":"'${AGENT_INTERVAL}'","errors":"'$(json_escape "$(cat /data/error.log)")'"}'
+  STATS='{"kind":"agentStats","agent_version":"'${AGENT_VERSION}'","cluster_version":"'${CLUSTER_VERSION}'","query_time":"'${ELAPSED_TIME}'","run_start":"'${START_DATE}'","run_interval":"'${AGENT_INTERVAL}'","errors":"'$(json_escape "$(cat /data/error.log)")'"}'
 
   cat /data/data.json | jq '. += ['"${STATS}"']' > /data/data_final.json
 
