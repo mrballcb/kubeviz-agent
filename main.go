@@ -1,87 +1,101 @@
 package main
 
 import (
+  // "encoding/json"
+  // "flag"
+  // "fmt"
+  // "os"
   "encoding/json"
-  "flag"
-  "fmt"
-  "os"
-  "path/filepath"
-  v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-  "k8s.io/client-go/discovery"
-	"k8s.io/client-go/tools/clientcmd"
-  restclient "k8s.io/client-go/rest"
+  // "path/filepath"
+  "time"
+  // v1 "k8s.io/api/core/v1"
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// "k8s.io/client-go/kubernetes"
+  // "k8s.io/client-go/discovery"
+  // "k8s.io/client-go/discovery/helper"
+	// "k8s.io/client-go/tools/clientcmd"
+  // restclient "k8s.io/client-go/rest"
   log "github.com/Sirupsen/logrus"
+  // envconfig "github.com/kelseyhightower/envconfig"
+  // "github.com/spf13/viper"
+  "github.com/bartlettc22/kubeviz-agent/pkg/kubernetes"
+  "github.com/bartlettc22/kubeviz-agent/pkg/aws"
+  "github.com/bartlettc22/kubeviz-agent/pkg/data"
 )
 
-type Info struct {
-  Version string `json:"version"`
-  Nodes []v1.Node `json:"nodes"`
-}
 
-var info Info
-var config *restclient.Config
-var clientset *kubernetes.Clientset
+
+// var config EnvConfig
+// var data Data
+
 var err error
+
+// type EnvConfig struct {
+//
+// }
 
 func main() {
 
-  var kubeconfig *string
-
   log.SetLevel(log.DebugLevel)
 
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
+  data.Data.Metadata.AgentVersion = "0.2.0"
 
-	// use the current context in kubeconfig
-	config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		panic(err.Error())
-	}
+  // Initialize kubernetes configuration
+  // Will use cluster api if inside Kubernetes
+  // Will use kubeconfig if outside Kubernetes
+  kubernetes.Init()
 
-	clientset, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 
-  getVersion()
-  getNodes()
+  aws.Init()
 
-  output, err := json.Marshal(info)
+  tick := time.Tick(time.Duration(10000) * time.Millisecond)
+  run()
+  for range tick {
+    log.Debug("Starting new run")
+    run()
+  }
+
+  // client := discovery.NewDiscoveryClientForConfigOrDie(config)
+  // info.ResourceList, err = client.ServerResources()
+  // if err != nil {
+  //   log.Fatal(err)
+  // }
+  //
+  // fmt.Println(discovery.GroupVersionResources(info.ResourceList))
+  //
+  //
+  //
+  // // x, _ := discovery.GroupVersionResources(info.ResourceList)
+  // // output, err := json.Marshal(x)
+  // // if err != nil {
+  // //   log.Fatal("Unable to create JSON output", err)
+  // // }
+  // //
+  // // fmt.Println(string(output))
+  //
+
+
+
+
+
+  //
+  // fmt.Println(string(output))
+
+}
+
+func run() {
+  start := time.Now()
+  data.Data.Metadata.RunTime = start
+
+  kubernetes.Run(&data.Data.KubernetesResources)
+  aws.Run(&data.Data.AwsResources, &kubernetes.Resources.Metadata.ClusterName)
+
+  data.Data.Metadata.RunDuration = time.Since(start)
+
+  data, err := json.Marshal(data.Data)
   if err != nil {
     log.Fatal("Unable to create JSON output", err)
   }
 
-  fmt.Println(string(output))
-
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
-func getVersion() {
-  client := discovery.NewDiscoveryClientForConfigOrDie(config)
-  version, err := client.ServerVersion()
-  if err != nil {
-    log.Fatal("Error fetching Kubernetes version")
-  }
-
-  info.Version = version.GitVersion
-}
-
-func getNodes() {
-  nodes, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-  info.Nodes = nodes.Items
+  post(data)
 }
