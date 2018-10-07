@@ -1,37 +1,24 @@
-FROM node:latest
+FROM golang:1.10.2-alpine as builder
 
-RUN apt-get update && apt-get install -y jq
+ARG VERSION=master
+ARG GOOS=linux
 
-# Install kubectl
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
-      && chmod +x ./kubectl \
-      && mv ./kubectl /usr/local/bin/kubectl \
-      && kubectl version --client
+WORKDIR /go/src/github.com/bartlettc22/kubeviz-agent/
+COPY main.go .
+COPY vendor vendor
+COPY cmd cmd
+COPY agent agent
+COPY pkg pkg
+RUN ls
+RUN CGO_ENABLED=0 GOOS=${GOOS} go build -ldflags "-X main.version=${VERSION}" -v -a -o kubeviz-agent .
 
-# Install kops
-RUN curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64 \
-    && chmod +x kops-linux-amd64 \
-    && mv kops-linux-amd64 /usr/local/bin/kops \
-    && kops version
+#### Stage 2 ####
 
-# Install helm
-RUN curl -L https://kubernetes-helm.storage.googleapis.com/helm-$(curl -s https://api.github.com/repos/kubernetes/helm/releases/latest | grep tag_name | cut -d '"' -f 4)-linux-amd64.tar.gz -o helm.tar.gz \
-  && tar -zxvf helm.tar.gz \
-  && rm helm.tar.gz \
-  && chmod +x linux-amd64/helm \
-  && mv linux-amd64/helm /usr/local/bin/helm \
-  && rm -rf linux-amd64
+FROM alpine:latest
 
-ENV AGENT_VERSION=0.1.1
+RUN apk --no-cache add ca-certificates
 
-# RUN npm init
-RUN npm install aws-sdk
-RUN npm install promise
-RUN npm install bluebird
+COPY --from=builder /go/src/github.com/bartlettc22/kubeviz-agent/kubeviz-agent /usr/bin
 
-COPY src /src
-RUN mkdir -p /data
-
-WORKDIR /src
-
-CMD ./agent.sh
+ENTRYPOINT ["kubeviz-agent"]
+CMD ["start"]

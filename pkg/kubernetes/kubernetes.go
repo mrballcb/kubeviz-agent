@@ -1,16 +1,13 @@
 package kubernetes
 
 import (
-  // "encoding/json"
   "flag"
-  // "fmt"
   "os"
   "path/filepath"
   v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
   "k8s.io/client-go/discovery"
-  // "k8s.io/client-go/discovery/helper"
 	"k8s.io/client-go/tools/clientcmd"
   restclient "k8s.io/client-go/rest"
   log "github.com/Sirupsen/logrus"
@@ -100,19 +97,3 @@ func getNamespaces(resources *KubernetesResources) {
 	}
   resources.Namespaces = namespaces.Items
 }
-
-// func getServices() {
-//   namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
-// 	if err != nil {
-// 		log.Fatal(err.Error())
-// 	}
-//   cluster.Namespaces = namespaces.Items
-// }
-//
-// func getIngresses() {
-//   namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
-// 	if err != nil {
-// 		log.Fatal(err.Error())
-// 	}
-//   cluster.Namespaces = namespaces.Items
-// }
