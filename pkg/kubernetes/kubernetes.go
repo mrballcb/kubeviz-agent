@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-  "flag"
   "os"
   "path/filepath"
   v1 "k8s.io/api/core/v1"
@@ -33,19 +32,22 @@ var err error
 
 func Init() {
 
-  var kubeconfig *string
-
-  if home := homeDir(); home != "" {
-    kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+  home := homeDir();
+  kubeConfigPath := filepath.Join(home, ".kube", "config")
+  if e, _ := exists(kubeConfigPath); home != "" && e {
+    log.Info("Attempting .kube/config")
+    // use the current context in kubeconfig
+    kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+    if err != nil {
+      log.Fatal(err.Error())
+    }
   } else {
-    kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-  }
-  flag.Parse()
-
-  // use the current context in kubeconfig
-  kubeConfig, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-  if err != nil {
-    panic(err.Error())
+    // Try in-cluster config
+    log.Info("Attempting in-cluster config")
+    kubeConfig, err = restclient.InClusterConfig()
+  	if err != nil {
+  		log.Fatal(err.Error())
+  	}
   }
 
   clientset, err = kubernetes.NewForConfig(kubeConfig)
@@ -96,4 +98,11 @@ func getNamespaces(resources *KubernetesResources) {
 		log.Fatal(err.Error())
 	}
   resources.Namespaces = namespaces.Items
+}
+
+func exists(path string) (bool, error) {
+    _, err := os.Stat(path)
+    if err == nil { return true, nil }
+    if os.IsNotExist(err) { return false, nil }
+    return true, err
 }
