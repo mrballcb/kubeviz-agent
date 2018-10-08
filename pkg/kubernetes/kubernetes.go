@@ -17,6 +17,7 @@ type KubernetesResources struct {
   // ResourceList []*metav1.APIResourceList
   Nodes []v1.Node
   Namespaces []v1.Namespace
+  Pods []v1.Pod
 }
 
 type Metadata struct {
@@ -67,6 +68,7 @@ func Run(resources *KubernetesResources) {
   getVersion(resources)
   getNodes(resources)
   getNamespaces(resources)
+  getPods(resources)
 }
 
 func getVersion(resources *KubernetesResources) {
@@ -98,6 +100,14 @@ func getNamespaces(resources *KubernetesResources) {
 		log.Fatal(err.Error())
 	}
   resources.Namespaces = namespaces.Items
+}
+
+func getPods(resources *KubernetesResources) {
+  pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+  resources.Pods = pods.Items
 }
 
 func exists(path string) (bool, error) {
