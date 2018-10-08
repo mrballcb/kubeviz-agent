@@ -22,7 +22,7 @@ var iamClient *iam.IAM
 var stsClient *sts.STS
 var Resources AwsResources
 
-func Init() {
+func init() {
   sess := session.Must(session.NewSession(&aws.Config{
 	   Region: aws.String("us-west-2"),
   }))

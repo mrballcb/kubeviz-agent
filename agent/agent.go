@@ -18,12 +18,6 @@ func Start(address string, token string) {
 
   data.Data.Metadata.AgentVersion = "0.2.0"
 
-  // Initialize kubernetes configuration
-  // Will use cluster api if inside Kubernetes
-  // Will use kubeconfig if outside Kubernetes
-  kubernetes.Init()
-  aws.Init()
-  log.Info("test")
   tick := time.Tick(time.Duration(10000) * time.Millisecond)
   run()
   for range tick {

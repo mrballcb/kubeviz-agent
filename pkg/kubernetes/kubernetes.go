@@ -30,7 +30,7 @@ var kubeConfig *restclient.Config
 var clientset *kubernetes.Clientset
 var err error
 
-func Init() {
+func init() {
 
   home := homeDir();
   kubeConfigPath := filepath.Join(home, ".kube", "config")

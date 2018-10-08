@@ -8,6 +8,7 @@ Agent:
   ApiEndpoint: "" # Example https://my-collector:8090
   ApiKey: ""
   DnsoneIds: "" # Comma separated list
-  KopsStateStore: "" # Example s3://my-bucket/kops_state
   AwsAccessKey: ""
   AwsSecretKey: ""
+rbac:
+  create: false
