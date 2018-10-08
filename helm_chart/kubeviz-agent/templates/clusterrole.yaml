@@ -17,6 +17,7 @@ rules:
       - endpoints
       - nodes
       - pods
+      - namespaces
     verbs:
       - list
       - watch
