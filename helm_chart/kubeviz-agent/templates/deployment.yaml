@@ -31,16 +31,10 @@ spec:
         image: "{{.Values.Agent.Image}}:{{.Values.Agent.ImageTag}}"
         imagePullPolicy: "{{.Values.Agent.ImagePullPolicy}}"
         env:
-        - name: AGENT_INTERVAL
-          value: {{ .Values.Agent.Interval | quote }}
-        - name: API_KEY
+        - name: KUBEVIZ_TOKEN
           value: {{ .Values.Agent.ApiKey }}
-        - name: DNS_ZONE_IDS
-          value: "{{ .Values.Agent.DnsZoneIds }}"
-        - name: "API_ENDPOINT"
+        - name: "KUBEVIZ_SERVER_ADDRESS"
           value: "{{ .Values.Agent.ApiEndpoint }}"
-        - name: "KOPS_STATE_STORE"
-          value: "{{ .Values.Agent.KopsStateStore }}"
         - name: "AWS_ACCESS_KEY_ID"
           value: "{{ .Values.Agent.AwsAccessKey }}"
         - name: "AWS_SECRET_ACCESS_KEY"
