@@ -41,3 +41,7 @@ spec:
           value: "{{ .Values.Agent.ApiEndpoint }}"
         - name: "KOPS_STATE_STORE"
           value: "{{ .Values.Agent.KopsStateStore }}"
+        - name: "AWS_ACCESS_KEY_ID"
+          value: "{{ .Values.Agent.Aws.AccessKey }}"
+        - name: "AWS_SECRET_ACCESS_KEY"
+          value: "{{ .Values.Agent.Aws.SecretKey }}"

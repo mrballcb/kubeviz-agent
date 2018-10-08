@@ -1,11 +1,13 @@
 Agent:
-  ComponentName: kube-visualization-agent
+  ComponentName: kubeviz-agent
   Replicas: 1
-  Image: bartlettc/kube-visualization-agent
-  ImageTag: latest
+  Image: bartlettc/kubeviz-agent
+  ImageTag: goclient
   ImagePullPolicy: Always
   Interval: "60" # Seconds between queries
   ApiEndpoint: "" # Example https://my-collector:8090
   ApiKey: ""
   DnsoneIds: "" # Comma separated list
   KopsStateStore: "" # Example s3://my-bucket/kops_state
+  AwsAccessKey: ""
+  AwsSecretKey: ""
