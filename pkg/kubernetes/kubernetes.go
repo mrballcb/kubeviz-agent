@@ -107,7 +107,21 @@ func getPods(resources *KubernetesResources) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+  // Blank out the value of environment variables as they can contain secrets
+  for pi, _ := range pods.Items {
+    sanitizePodSpec(&pods.Items[pi])
+	}
+
   resources.Pods = pods.Items
+}
+
+func sanitizePodSpec(pod *v1.Pod) {
+  for ci, c := range pod.Spec.Containers {
+    for ei, _ := range c.Env {
+      pod.Spec.Containers[ci].Env[ei].Value=""
+    }
+  }
 }
 
 func exists(path string) (bool, error) {
