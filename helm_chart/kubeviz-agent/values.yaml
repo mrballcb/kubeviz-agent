@@ -1,13 +1,11 @@
 Agent:
   ComponentName: kubeviz-agent
-  Replicas: 1
   Image: bartlettc/kubeviz-agent
-  ImageTag: goclient
-  ImagePullPolicy: Always
+  ImageTag: 0.1.0
+  ImagePullPolicy: IfNotPresent
   Interval: "60" # Seconds between queries
   ApiEndpoint: "" # Example https://my-collector:8090
   ApiKey: ""
-  DnsoneIds: "" # Comma separated list
   AwsAccessKey: ""
   AwsSecretKey: ""
 rbac:

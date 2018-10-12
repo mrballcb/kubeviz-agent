@@ -9,7 +9,7 @@ metadata:
     component: {{ .Values.Agent.ComponentName }}
     app: {{template "name" .}}
 spec:
-  replicas: {{ .Values.Agent.Replicas }}
+  replicas: 1 # Should only have 1 per cluster
   template:
     metadata:
       name: {{ template "fullname" . }}
