@@ -9,13 +9,16 @@ import (
   "github.com/bartlettc22/kubeviz-agent/pkg/data"
 )
 
-var serverAddress, tokenAuth string
+var serverAddress, tokenAuth, clusterName string
 
-func Start(address string, token string) {
+func Start(address string, token string, cluster string) {
 
   serverAddress = address
   tokenAuth = token
-
+  clusterName = cluster
+  if clusterName != "" {
+    log.Info("Override cluster name = ", clusterName)
+  }
   data.Data.Metadata.AgentVersion = "0.2.0"
 
   tick := time.Tick(time.Duration(10000) * time.Millisecond)
@@ -30,9 +33,8 @@ func run() {
   start := time.Now()
   data.Data.Metadata.RunTime = start
 
-  kubernetes.Run(&data.Data.KubernetesResources)
+  kubernetes.Run(&data.Data.KubernetesResources, clusterName)
   aws.Run(&data.Data.AwsResources, &kubernetes.Resources.Metadata.ClusterName)
-
   data.Data.Metadata.RunDuration = time.Since(start)
 
   data, err := json.Marshal(data.Data)

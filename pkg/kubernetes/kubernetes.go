@@ -64,9 +64,9 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func Run(resources *KubernetesResources) {
+func Run(resources *KubernetesResources, clusterName string) {
   getVersion(resources)
-  getNodes(resources)
+  getNodes(resources, clusterName)
   getNamespaces(resources)
   getPods(resources)
 }
@@ -81,15 +81,19 @@ func getVersion(resources *KubernetesResources) {
   resources.Metadata.KubernetesVersion = version.GitVersion
 }
 
-func getNodes(resources *KubernetesResources) {
+func getNodes(resources *KubernetesResources, clusterName string) {
   nodes, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
   // Since cluster name is not really a thing in Kubernetes, we use the custom
-  // node label that we've added to every cluster
-  resources.Metadata.ClusterName = nodes.Items[0].ObjectMeta.Labels["clusterName"]
+  // node label that we've added to every cluster, or cli override if provided
+  if clusterName == "" {
+    resources.Metadata.ClusterName = nodes.Items[0].ObjectMeta.Labels["clusterName"]
+  } else {
+    resources.Metadata.ClusterName = clusterName
+  }
   resources.Metadata.Region = nodes.Items[0].ObjectMeta.Labels["failure-domain.beta.kubernetes.io/region"]
   resources.Nodes = nodes.Items
 }

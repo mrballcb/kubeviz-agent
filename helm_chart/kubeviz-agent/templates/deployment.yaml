@@ -20,12 +20,22 @@ spec:
         component: {{.Values.Agent.ComponentName}}
         app: {{template "name" .}}
     spec:
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- else }}
       nodeSelector:
         role: master
+    {{- end }}
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: Exists
           effect: NoSchedule
+      {{- if .Values.Agent.RepoSecretName }}
+      imagePullSecrets:
+      # This must exist within the namespace in which you plan to deploy
+      - name: {{ .Values.Agent.RepoSecretName | quote }}
+      {{- end }}
       containers:
       - name: {{ template "fullname" . }}
         image: "{{.Values.Agent.Image}}:{{.Values.Agent.ImageTag}}"
@@ -39,3 +49,7 @@ spec:
           value: "{{ .Values.Agent.AwsAccessKey }}"
         - name: "AWS_SECRET_ACCESS_KEY"
           value: "{{ .Values.Agent.AwsSecretKey }}"
+        {{- if .Values.Agent.ClusterName }}
+        - name: KUBEVIZ_CLUSTER_NAME
+          value: {{ .Values.Agent.ClusterName }}
+        {{- end }}
